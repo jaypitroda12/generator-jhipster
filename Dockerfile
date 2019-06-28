@@ -1,4 +1,4 @@
-FROM ubuntu:xenial
+FROM ubuntu:bionic
 
 RUN \
   # configure the "jhipster" user
@@ -6,11 +6,7 @@ RUN \
   useradd jhipster -s /bin/bash -m -g jhipster -G sudo && \
   echo 'jhipster:jhipster' |chpasswd && \
   mkdir /home/jhipster/app && \
-
-  # install open-jdk 8
   apt-get update && \
-  apt-get install -y openjdk-8-jdk && \
-
   # install utilities
   apt-get install -y \
     wget \
@@ -22,22 +18,25 @@ RUN \
     fontconfig \
     python \
     g++ \
-    build-essential && \
-
+    libpng-dev \
+    build-essential \
+    software-properties-common \
+    sudo && \
+  # install OpenJDK 11
+  add-apt-repository ppa:openjdk-r/ppa && \
+  apt-get update && \
+  apt-get install -y openjdk-11-jdk && \
+  update-java-alternatives -s java-1.11.0-openjdk-amd64 && \
   # install node.js
-  curl -sL https://deb.nodesource.com/setup_6.x | bash && \
-  apt-get install -y nodejs && \
-
+  wget https://nodejs.org/dist/v10.16.0/node-v10.16.0-linux-x64.tar.gz -O /tmp/node.tar.gz && \
+  tar -C /usr/local --strip-components 1 -xzf /tmp/node.tar.gz && \
   # upgrade npm
   npm install -g npm && \
-
   # install yarn
   npm install -g yarn && \
   su -c "yarn config set prefix /home/jhipster/.yarn-global" jhipster && \
-
-  # install yeoman bower gulp
-  su -c "yarn global add yo bower gulp-cli" jhipster && \
-
+  # install yeoman
+  npm install -g yo && \
   # cleanup
   apt-get clean && \
   rm -rf \
@@ -50,18 +49,16 @@ RUN \
 COPY . /home/jhipster/generator-jhipster
 
 RUN \
-  # fix jhipster user permissions
-  chown -R jhipster:jhipster \
-    /home/jhipster \
-    /usr/lib/node_modules && \
-
-  # install jhipster
+  # clean jhipster folder
   rm -Rf /home/jhipster/generator-jhipster/node_modules \
     /home/jhipster/generator-jhipster/yarn.lock \
     /home/jhipster/generator-jhipster/yarn-error.log && \
-  su -c "cd /home/jhipster/generator-jhipster && yarn install" jhipster && \
-  su -c "yarn global add file:/home/jhipster/generator-jhipster" jhipster && \
-
+  # install jhipster
+  npm install -g /home/jhipster/generator-jhipster && \
+  # fix jhipster user permissions
+  chown -R jhipster:jhipster \
+    /home/jhipster \
+    /usr/local/lib/node_modules && \
   # cleanup
   rm -rf \
     /home/jhipster/.cache/ \
